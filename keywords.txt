@@ -1,0 +1,27 @@
+#######################################
+# Syntax Coloring Map
+#######################################
+#######################################
+# # Datatypes (KEYWORD1)
+#######################################
+FLProgTca9555	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+pinMode	KEYWORD2
+pool	KEYWORD2
+read	KEYWORD2
+write	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+FLPROG_TCA9555_CONFIGURATION_PORT_0	LITERAL1
+FLPROG_TCA9555_CONFIGURATION_PORT_1	LITERAL1
+FLPROG_TCA9555_INPUT_PORT_REGISTER_0	LITERAL1
+FLPROG_TCA9555_INPUT_PORT_REGISTER_1	LITERAL1
+FLPROG_TCA9555_OUTPUT_PORT_REGISTER_0	LITERAL1
+FLPROG_TCA9555_OUTPUT_PORT_REGISTER_1	LITERAL1
+FLPROG_TCA9555_POLARITY_REGISTER_0	LITERAL1
+FLPROG_TCA9555_POLARITY_REGISTER_1	LITERAL1
