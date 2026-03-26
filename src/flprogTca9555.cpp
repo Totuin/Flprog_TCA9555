@@ -153,14 +153,48 @@ bool FLProgTca9555::read(uint8_t pin)
   return _values[pin];
 }
 
+bool FLProgTca9555::hasInputs()
+{
+  for (uint8_t i = 0; i < 16; i++)
+  {
+    if (_modes[i] == INPUT)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool FLProgTca9555::hasOutputs()
+{
+  for (uint8_t i = 0; i < 16; i++)
+  {
+    if (_modes[i] == OUTPUT)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 void FLProgTca9555::updateData()
 {
-  uint8_t inputReg0 = readRegister(FLPROG_TCA9555_INPUT_PORT_REGISTER_0);
-  uint8_t inputReg1 = readRegister(FLPROG_TCA9555_INPUT_PORT_REGISTER_1);
-  uint8_t outReg0 = readRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_0);
-  uint8_t outRreg1 = readRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_1);
-  bool needUpdateOutputs0 = false;
-  bool needUpdateOutputs1 = false;
+  uint8_t inputReg0 = 0;
+  uint8_t inputReg1 = 0;
+  uint8_t outReg0 = 0;
+  uint8_t outRreg1 = 0;
+  if (hasInputs())
+  {
+    inputReg0 = readRegister(FLPROG_TCA9555_INPUT_PORT_REGISTER_0);
+    inputReg1 = readRegister(FLPROG_TCA9555_INPUT_PORT_REGISTER_1);
+  }
+  if (hasOutputs())
+  {
+    outReg0 = readRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_0);
+    outRreg1 = readRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_1);
+  }
+  uint8_t oldOutReg0 = outReg0;
+  uint8_t oldOutRreg1 = outRreg1;
   for (uint8_t i = 0; i < 16; i++)
   {
     uint8_t inputRreg = inputReg0;
@@ -171,47 +205,41 @@ void FLProgTca9555::updateData()
       pin -= 8;
     }
     uint8_t mask = 1 << pin;
-    bool currentValue = (inputRreg & mask) != 0;
     if (_modes[i] == INPUT)
     {
-      _values[i] = currentValue;
+      _values[i] = (inputRreg & mask) != 0;
     }
     else
     {
-      if (_values[i] != currentValue)
+      if (i > 7)
       {
-        if (i > 7)
+        if (_values[i])
         {
-          if (_values[i])
-          {
-            outRreg1 |= mask;
-          }
-          else
-          {
-            outRreg1 &= ~mask;
-          }
-          needUpdateOutputs1 = true;
+          outRreg1 |= mask;
         }
         else
         {
-          if (_values[i])
-          {
-            outReg0 |= mask;
-          }
-          else
-          {
-            outReg0 &= ~mask;
-          }
-          needUpdateOutputs0 = true;
+          outRreg1 &= ~mask;
+        }
+      }
+      else
+      {
+        if (_values[i])
+        {
+          outReg0 |= mask;
+        }
+        else
+        {
+          outReg0 &= ~mask;
         }
       }
     }
   }
-  if (needUpdateOutputs0)
+  if (oldOutReg0 != outReg0)
   {
     writeRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_0, outReg0);
   }
-  if (needUpdateOutputs1)
+  if (oldOutRreg1 != outRreg1)
   {
     writeRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_1, outRreg1);
   }

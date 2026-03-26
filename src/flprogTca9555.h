@@ -26,6 +26,8 @@ private:
   uint8_t readRegister(uint8_t reg);
   void writeRegister(uint8_t reg, uint8_t value);
   void updateData();
+  bool hasInputs();
+  bool hasOutputs();
   uint8_t _modes[16] = {INPUT};
   bool _values[16] = {false};
   uint32_t _pauseStartTime;
