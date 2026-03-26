@@ -10,6 +10,16 @@ FLProgTca9555::FLProgTca9555(uint8_t address, uint8_t bus, uint8_t expander, uin
   RT_HW_Base.i2cSetParam(_device, address, bus, RT_HW_I2C_SPEED, expander, channel);
 }
 
+void FLProgTca9555::setReqestPerion(uint32_t period)
+{
+  if (_reqestPeriod == period)
+  {
+    return;
+  }
+  _lastRequestTime = millis();
+  _reqestPeriod = period;
+}
+
 void FLProgTca9555::pool()
 {
   if (_status == FLPROG_NOT_REDY_STATUS)
@@ -90,9 +100,19 @@ void FLProgTca9555::writeRegister(uint8_t reg, uint8_t value)
 
 void FLProgTca9555::init()
 {
+  _isNeedSend = false;
+  _hasInputs = false;
   for (uint8_t i = 0; i < 16; i++)
   {
     privatePinMode(i, _modes[i]);
+    if (_modes[i] == OUTPUT)
+    {
+      _isNeedSend = true;
+    }
+    if (_modes[i] == INPUT)
+    {
+      _hasInputs = true;
+    }
   }
   _status = FLPROG_READY_STATUS;
 }
@@ -141,6 +161,11 @@ void FLProgTca9555::write(uint8_t pin, uint8_t value)
   {
     return;
   }
+  if (_values[pin] == value)
+  {
+    return;
+  }
+  _isNeedSend = true;
   _values[pin] = value;
 }
 
@@ -153,94 +178,92 @@ bool FLProgTca9555::read(uint8_t pin)
   return _values[pin];
 }
 
-bool FLProgTca9555::hasInputs()
+bool FLProgTca9555::canReqestInputs()
 {
-  for (uint8_t i = 0; i < 16; i++)
+  if (!_hasInputs)
   {
-    if (_modes[i] == INPUT)
-    {
-      return true;
-    }
+    return false;
   }
-  return false;
-}
-
-bool FLProgTca9555::hasOutputs()
-{
-  for (uint8_t i = 0; i < 16; i++)
+  if (_reqestPeriod == 0)
   {
-    if (_modes[i] == OUTPUT)
-    {
-      return true;
-    }
+    return true;
+  }
+  if (flprog::isTimer(_lastRequestTime, _reqestPeriod))
+  {
+    _lastRequestTime = millis();
+    return true;
   }
   return false;
 }
 
 void FLProgTca9555::updateData()
 {
-  uint8_t inputReg0 = 0;
-  uint8_t inputReg1 = 0;
-  uint8_t outReg0 = 0;
-  uint8_t outRreg1 = 0;
-  if (hasInputs())
+  if (canReqestInputs())
   {
-    inputReg0 = readRegister(FLPROG_TCA9555_INPUT_PORT_REGISTER_0);
-    inputReg1 = readRegister(FLPROG_TCA9555_INPUT_PORT_REGISTER_1);
-  }
-  if (hasOutputs())
-  {
-    outReg0 = readRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_0);
-    outRreg1 = readRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_1);
-  }
-  uint8_t oldOutReg0 = outReg0;
-  uint8_t oldOutRreg1 = outRreg1;
-  for (uint8_t i = 0; i < 16; i++)
-  {
-    uint8_t inputRreg = inputReg0;
-    uint8_t pin = i;
-    if (i > 7)
+    uint8_t inRreg = readRegister(FLPROG_TCA9555_INPUT_PORT_REGISTER_0);
+    uint8_t inRreg1 = readRegister(FLPROG_TCA9555_INPUT_PORT_REGISTER_1);
+    for (uint8_t i = 0; i < 16; i++)
     {
-      inputRreg = inputReg1;
-      pin -= 8;
-    }
-    uint8_t mask = 1 << pin;
-    if (_modes[i] == INPUT)
-    {
-      _values[i] = (inputRreg & mask) != 0;
-    }
-    else
-    {
-      if (i > 7)
+      uint8_t inPin = i;
+      if (inPin > 7)
       {
-        if (_values[i])
-        {
-          outRreg1 |= mask;
-        }
-        else
-        {
-          outRreg1 &= ~mask;
-        }
+        inPin -= 8;
       }
-      else
+      if (_modes[i] == INPUT)
       {
-        if (_values[i])
+        uint8_t mask = 1 << inPin;
+        if (i > 7)
         {
-          outReg0 |= mask;
+          _values[i] = (inRreg1 & mask) != 0;
         }
         else
         {
-          outReg0 &= ~mask;
+          _values[i] = (inRreg & mask) != 0;
         }
       }
     }
   }
-  if (oldOutReg0 != outReg0)
+  if (_isNeedSend)
   {
-    writeRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_0, outReg0);
-  }
-  if (oldOutRreg1 != outRreg1)
-  {
-    writeRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_1, outRreg1);
+    _isNeedSend = false;
+    uint8_t reg0 = readRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_0);
+    uint8_t reg1 = readRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_1);
+    for (uint8_t i = 0; i < 16; i++)
+    {
+      if (_modes[i] == OUTPUT)
+      {
+        uint8_t pin = i;
+        if (pin > 7)
+        {
+          pin -= 8;
+        }
+        uint8_t mask = 1 << pin;
+
+        if (_values[i])
+        {
+          if (i > 7)
+          {
+            reg1 |= mask;
+          }
+          else
+          {
+            reg0 |= mask;
+          }
+        }
+        else
+        {
+          if (i > 7)
+          {
+            reg1 &= ~mask;
+          }
+          else
+          {
+            reg0 &= ~mask;
+          }
+        }
+      }
+    }
+    writeRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_0, reg0);
+    writeRegister(FLPROG_TCA9555_OUTPUT_PORT_REGISTER_1, reg1);
   }
 }

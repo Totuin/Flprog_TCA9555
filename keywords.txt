@@ -9,9 +9,11 @@ FLProgTca9555	KEYWORD1
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
+getReqestPerion	KEYWORD2
 pinMode	KEYWORD2
 pool	KEYWORD2
 read	KEYWORD2
+setReqestPerion	KEYWORD2
 write	KEYWORD2
 
 #######################################
