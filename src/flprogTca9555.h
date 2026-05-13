@@ -31,6 +31,6 @@ protected:
   bool _values[16] = {false};
   bool _isNeedSend = false;
   bool _hasInputs = false;
-  uint32_t _reqestPeriod = 0;
+  uint32_t _reqestPeriod = 20;
   uint32_t _lastRequestTime = 0;
 };

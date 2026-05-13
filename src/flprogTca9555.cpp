@@ -7,7 +7,7 @@ FLProgTca9555::FLProgTca9555(uint8_t address, uint8_t bus)
 
 FLProgTca9555::FLProgTca9555(uint8_t address, uint8_t bus, uint8_t expander, uint8_t channel)
 {
-  RT_HW_Base.i2cSetParam(_device, address, bus, RT_HW_I2C_SPEED, expander, channel);
+  RT_HW_Base.i2cSetParam(_device, address, bus, 800000, expander, channel);
 }
 
 void FLProgTca9555::setReqestPerion(uint32_t period)
